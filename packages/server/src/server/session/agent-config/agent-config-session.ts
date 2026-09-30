@@ -1,7 +1,7 @@
 import type pino from "pino";
 import { v4 as uuidv4 } from "uuid";
 import { getErrorMessage, getErrorMessageOr } from "@getpaseo/protocol/error-utils";
-import type { AgentConfigApply } from "@getpaseo/protocol/messages";
+import type { AgentConfigApply, AgentConfigReadback } from "@getpaseo/protocol/messages";
 import type { AgentProviderNotice } from "../../agent/agent-sdk-types.js";
 import type { SessionInboundMessage, SessionOutboundMessage } from "../../messages.js";
 
@@ -25,6 +25,7 @@ export interface AgentConfigSessionHost {
  * thinking yield a provider notice; model and feature do not.
  */
 export interface AgentConfigOperations {
+  readConfig(agentId: string): Promise<AgentConfigReadback> | AgentConfigReadback;
   ensureLoaded(agentId: string): Promise<void>;
   setMode(agentId: string, modeId: string): Promise<AgentProviderNotice | null>;
   setModel(agentId: string, modelId: string | null): Promise<void>;
@@ -148,6 +149,41 @@ export class AgentConfigSession {
       run: () => this.applyBundle(agentId, config),
       emitResponse: (payload) => this.host.emit({ type: "agent.config.apply.response", payload }),
     });
+  }
+
+  async handleAgentConfigReadRequest(
+    msg: Extract<SessionInboundMessage, { type: "agent.config.read.request" }>,
+  ): Promise<void> {
+    const { agentId, requestId } = msg;
+    this.logger.info({ agentId, requestId }, "session: agent.config.read.request");
+    try {
+      const readback = await this.operations.readConfig(agentId);
+      if (readback.agentId !== agentId)
+        throw new Error("agent identity changed during config read");
+      this.host.emit({
+        type: "agent.config.read.response",
+        payload: {
+          requestId,
+          agentId,
+          accepted: true,
+          error: null,
+          readback,
+        },
+      });
+    } catch {
+      // Do not log or return configuration values or provider diagnostics.
+      this.logger.warn({ agentId, requestId }, "session: agent.config.read.request unavailable");
+      this.host.emit({
+        type: "agent.config.read.response",
+        payload: {
+          requestId,
+          agentId,
+          accepted: false,
+          error: "Agent config readback is unavailable for this exact agent",
+          readback: null,
+        },
+      });
+    }
   }
 
   /**

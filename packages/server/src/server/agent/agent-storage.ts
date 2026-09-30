@@ -56,6 +56,11 @@ const STORED_AGENT_SCHEMA = z.object({
   lastStatus: AgentStatusSchema.default("closed"),
   lastModeId: z.string().nullable().optional(),
   config: SERIALIZABLE_CONFIG_SCHEMA,
+  /** Hash only: the launch environment can contain credentials and is never stored verbatim. */
+  launchEnvironmentSha256: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
   runtimeInfo: z
     .object({
       provider: z.string(),

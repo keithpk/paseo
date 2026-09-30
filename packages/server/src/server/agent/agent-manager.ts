@@ -1,7 +1,7 @@
 import type { PluginLifecycle } from "../plugins/lifecycle/index.js";
 import { describeHookAgent, publishAgentStream } from "../plugins/lifecycle/index.js";
 import type { PluginSessionOpenRequest } from "@getpaseo/plugin/server";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { basename, resolve } from "node:path";
 import { stat } from "node:fs/promises";
 import {
@@ -183,6 +183,13 @@ function buildStoredAgentConfig(record: StoredAgentRecord): AgentSessionConfig {
   }
   if (record.config.mcpServers != null) config.mcpServers = record.config.mcpServers;
   return stripInternalPaseoMcpServer(config);
+}
+
+function hashLaunchEnvironment(env: Record<string, string> | undefined): string {
+  const canonical = JSON.stringify(
+    Object.fromEntries(Object.entries(env ?? {}).sort(([a], [b]) => a.localeCompare(b))),
+  );
+  return createHash("sha256").update(canonical, "utf8").digest("hex");
 }
 
 export { AGENT_LIFECYCLE_STATUSES, type AgentLifecycleStatus };
@@ -382,6 +389,8 @@ interface ManagedAgentBase {
   owner?: AgentOwner;
   capabilities: AgentCapabilityFlags;
   config: AgentSessionConfig;
+  /** Fingerprint of the final launch-context environment; raw values are never persisted. */
+  launchEnvironmentSha256?: string;
   runtimeInfo?: AgentRuntimeInfo;
   createdAt: Date;
   updatedAt: Date;
@@ -1249,6 +1258,7 @@ export class AgentManager {
       workspaceId: options.workspaceId,
       owner: options.owner,
       historyPrimed: true,
+      launchEnvironmentSha256: hashLaunchEnvironment(launchContext.env),
     });
     if (!agent.internal) {
       this.pluginLifecycle?.emit("agent.created", {
@@ -1348,6 +1358,7 @@ export class AgentManager {
     return this.registerSession(session, storedConfig, resolvedAgentId, {
       ...options,
       persistence: handle,
+      launchEnvironmentSha256: hashLaunchEnvironment(launchContext.env),
     });
   }
 
@@ -1537,6 +1548,7 @@ export class AgentManager {
         lastUsage: preservedLastUsage,
         lastError: preservedLastError,
         attention: preservedAttention,
+        launchEnvironmentSha256: hashLaunchEnvironment(launchContext.env),
       });
     } catch (error) {
       if (closedExisting) {
@@ -1836,6 +1848,7 @@ export class AgentManager {
         session: null,
         capabilities: STORED_AGENT_CAPABILITIES,
         config: buildStoredAgentConfig(record),
+        launchEnvironmentSha256: record.launchEnvironmentSha256,
         runtimeInfo: undefined,
         lifecycle: "closed",
         createdAt: new Date(record.createdAt),
@@ -3382,6 +3395,7 @@ export class AgentManager {
       publishWhenReady?: boolean;
       workspaceId?: string;
       owner?: AgentOwner;
+      launchEnvironmentSha256?: string;
     },
   ): Promise<ManagedAgent> {
     let registered = false;
@@ -3533,6 +3547,7 @@ export class AgentManager {
           persistence?: AgentPersistenceHandle;
           workspaceId?: string;
           owner?: AgentOwner;
+          launchEnvironmentSha256?: string;
         }
       | undefined;
   }): ActiveManagedAgent {
@@ -3546,6 +3561,7 @@ export class AgentManager {
       session,
       capabilities: session.capabilities,
       config,
+      launchEnvironmentSha256: options?.launchEnvironmentSha256,
       runtimeInfo: undefined,
       lifecycle: "initializing",
       createdAt: options?.createdAt ?? now,
