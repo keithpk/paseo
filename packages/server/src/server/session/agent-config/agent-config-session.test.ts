@@ -23,6 +23,7 @@ class FakeAgentConfigOperations implements AgentConfigOperations {
   failWith: Error | null = null;
   readback: AgentConfigReadback = {
     contract: "paseo.agent-config-readback.v1",
+    projection: "agent-manager-stored-config",
     agentId: "agent-1",
     revision: "2026-09-29T12:00:00.000Z",
     provider: "codex",

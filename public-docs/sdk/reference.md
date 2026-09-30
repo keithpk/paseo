@@ -74,13 +74,16 @@ Creation options include `config`, `cwd`, `parent`, `title`, `prompt`, `env`, `o
 
 ### Authenticated daemon config readback
 
-`agent.config()` returns a versioned readback for that exact agent ID. The daemon reports its
-managed config revision, provider, cwd, model, mode, thinking option, and SHA-256 fingerprints
-for configured environment, feature values, provider options, MCP servers, tool policy, and
-system prompt. Raw environment values, MCP credentials, and prompt text are not returned or
-logged. The fingerprint is over the daemon's managed/resolved launch configuration, not proof
-that the provider session actually applied or exposed those settings; verify runtime behavior
-separately. The method fails closed unless the connected daemon advertises
+`agent.config()` returns a versioned `agent-manager-stored-config` projection for that exact
+agent ID. The daemon reports the stored `ManagedAgent.config` revision, provider, cwd, model,
+mode, thinking option, and SHA-256 fingerprints for its stored feature values, provider options,
+MCP servers, tool policy, and system prompt. The environment fingerprint is the value recorded
+for the most recent session open. These fields do **not** include daemon launch overlays such as
+`daemonAppendSystemPrompt` or Paseo's runtime-injected MCP server, and do not describe the final
+`providerLaunchConfig` or prove what a live provider session applied/exposed. Raw environment
+values, MCP credentials, and prompt text are not returned or logged. Consumers requiring launch
+or session guarantees must check those through a separate launch/runtime proof. The method fails
+closed unless the connected daemon advertises
 `features.agentConfigReadback` and returns the exact requested agent identity. Older daemons do
 not receive the request.
 

@@ -3483,7 +3483,7 @@ export class DaemonClient {
     return payload.notice ?? null;
   }
 
-  /** Reads hashes of persisted per-agent config without returning env, MCP secrets, or prompt text. */
+  /** Reads stored AgentManager config hashes, not providerLaunchConfig or live provider behavior. */
   async getAgentConfig(agentId: string): Promise<AgentConfigReadback> {
     if (this.lastServerInfoMessage?.features?.agentConfigReadback !== true) {
       throw new DaemonConnectionError(

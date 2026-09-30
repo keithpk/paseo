@@ -1601,6 +1601,51 @@ test("agent config requires provider/model syntax", async () => {
   await client.close();
 });
 
+test("public agent handle reads the authenticated config-readback protocol", async () => {
+  const { client, ws } = await connectClient({ agentConfigReadback: true });
+  const reading = client.agents.ref("agent_public").config();
+  const request = parseSentSessionMessage(ws.sent.at(-1));
+
+  expect(request).toMatchObject({
+    type: "agent.config.read.request",
+    agentId: "agent_public",
+  });
+
+  const readback = {
+    contract: "paseo.agent-config-readback.v1",
+    projection: "agent-manager-stored-config",
+    agentId: "agent_public",
+    revision: "2026-09-29T12:00:00.000Z",
+    provider: "claude",
+    cwd: "/repo/sdk",
+    model: "claude-sonnet-5",
+    modeId: "auto",
+    thinkingOptionId: "high",
+    featureValuesSha256: "a".repeat(64),
+    envSha256: "b".repeat(64),
+    providerOptionsSha256: "c".repeat(64),
+    toolPolicySha256: "d".repeat(64),
+    mcpServersSha256: "e".repeat(64),
+    systemPromptSha256: "f".repeat(64),
+    configSha256: "0".repeat(64),
+  };
+  ws.message(
+    sessionMessage({
+      type: "agent.config.read.response",
+      payload: {
+        requestId: request.requestId,
+        agentId: "agent_public",
+        accepted: true,
+        error: null,
+        readback,
+      },
+    }),
+  );
+
+  await expect(reading).resolves.toEqual(readback);
+  await client.close();
+});
+
 test("canceled timeline handles and captured state are collectible while their API stays alive", async () => {
   const source = `
     import assert from "node:assert/strict";

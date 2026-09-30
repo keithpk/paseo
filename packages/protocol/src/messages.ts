@@ -1941,6 +1941,8 @@ export const AgentConfigApplyResponseMessageSchema = z.object({
 const AgentConfigDigestSchema = z.string().regex(/^[0-9a-f]{64}$/);
 export const AgentConfigReadbackSchema = z.object({
   contract: z.literal("paseo.agent-config-readback.v1"),
+  /** This is the stored AgentManager projection, not providerLaunchConfig. */
+  projection: z.literal("agent-manager-stored-config"),
   agentId: z.string().min(1),
   /** AgentManager updatedAt, used as an optimistic readback revision. */
   revision: z.string().datetime(),
@@ -1950,13 +1952,15 @@ export const AgentConfigReadbackSchema = z.object({
   modeId: z.string().nullable(),
   thinkingOptionId: z.string().nullable(),
   featureValuesSha256: AgentConfigDigestSchema,
-  /** Hash of configured launch environment; raw values can contain credentials. */
-  /** Null means the launch environment was not observed (legacy/imported agent); consumers must fail closed. */
+  /** Hash of the resolved environment recorded at the last session open; raw values may be secret. */
+  /** Null means the environment was not recorded (legacy/imported agent); consumers must fail closed. */
   envSha256: AgentConfigDigestSchema.nullable(),
   providerOptionsSha256: AgentConfigDigestSchema,
   toolPolicySha256: AgentConfigDigestSchema,
+  /** Hash of ManagedAgent.config.mcpServers, excluding runtime-injected Paseo MCP servers. */
   mcpServersSha256: AgentConfigDigestSchema,
-  /** Null means no prompt was configured; prompt contents are never returned. */
+  /** Hash of ManagedAgent.config.systemPrompt; excludes daemonAppendSystemPrompt. */
+  /** Null means no stored prompt was configured; prompt contents are never returned. */
   systemPromptSha256: AgentConfigDigestSchema.nullable(),
   configSha256: AgentConfigDigestSchema,
 });

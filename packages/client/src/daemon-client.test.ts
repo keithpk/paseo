@@ -389,6 +389,7 @@ test("agent config readback verifies the requested agent identity", async () => 
         error: null,
         readback: {
           contract: "paseo.agent-config-readback.v1",
+          projection: "agent-manager-stored-config",
           agentId: "agent-b",
           revision: "2026-09-29T12:00:00.000Z",
           provider: "codex",

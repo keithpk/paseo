@@ -7,6 +7,7 @@ import {
 
 const readback = {
   contract: "paseo.agent-config-readback.v1",
+  projection: "agent-manager-stored-config",
   agentId: "agent-a",
   revision: "2026-09-29T12:00:00.000Z",
   provider: "codex",

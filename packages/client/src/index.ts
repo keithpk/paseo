@@ -352,7 +352,7 @@ export interface PaseoAgentHandle {
   readonly timeline: PaseoAgentTimelineHandle;
   current(): PaseoAgent | null;
   refresh(requestId?: string): Promise<PaseoAgentRefetchResult | null>;
-  /** Reads exact persisted config fingerprints; never returns secret env/MCP values or prompt text. */
+  /** Reads stored AgentManager config fingerprints, not providerLaunchConfig or live session behavior. */
   config(): Promise<import("@getpaseo/protocol/messages").AgentConfigReadback>;
   send(text: string, options?: PaseoAgentSendOptions): Promise<void>;
   respondToPermission(options: PaseoAgentRespondToPermissionOptions): Promise<void>;

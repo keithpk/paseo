@@ -52,6 +52,7 @@ describe("agent config readback", () => {
     const result = createAgentConfigReadback(managedAgent());
     expect(AgentConfigReadbackSchema.parse(result)).toEqual(result);
     expect(result.agentId).toBe("agent-a");
+    expect(result.projection).toBe("agent-manager-stored-config");
     expect(result.revision).toBe("2026-09-29T12:00:00.000Z");
     expect(result.mcpServersSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(result.toolPolicySha256).toMatch(/^[0-9a-f]{64}$/);
@@ -59,6 +60,28 @@ describe("agent config readback", () => {
     expect(result.systemPromptSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(JSON.stringify(result)).not.toContain("secret-value");
     expect(JSON.stringify(result)).not.toContain("private role prompt");
+  });
+
+  test("labels hashes as stored config and excludes daemon launch overlays", () => {
+    const stored = managedAgent();
+    const readback = createAgentConfigReadback(stored);
+    const launchConfig = {
+      ...stored.config,
+      mcpServers: {
+        ...stored.config.mcpServers,
+        paseo: { type: "http", url: "http://runtime-injected.invalid/mcp" },
+      },
+      systemPrompt: `${stored.config.systemPrompt}\n\nDaemon-only launch instructions`,
+    };
+
+    expect(readback.projection).toBe("agent-manager-stored-config");
+    expect(readback.mcpServersSha256).toBe(createAgentConfigReadback(stored).mcpServersSha256);
+    expect(readback.mcpServersSha256).not.toBe(
+      createAgentConfigReadback({ ...stored, config: launchConfig }).mcpServersSha256,
+    );
+    expect(readback.systemPromptSha256).not.toBe(
+      createAgentConfigReadback({ ...stored, config: launchConfig }).systemPromptSha256,
+    );
   });
 
   test("canonical digest is stable for key order and changes for revision or config changes", () => {

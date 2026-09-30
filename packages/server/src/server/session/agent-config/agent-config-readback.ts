@@ -21,9 +21,11 @@ function valueDigest(value: unknown): string {
 }
 
 /**
- * Read-only and privacy preserving: no launch env, MCP config, provider options,
+ * Read-only and privacy preserving: no env values, MCP config, provider options,
  * or system-prompt bytes leave the daemon. Fingerprints use sorted-key canonical
- * JSON so a caller can compare a frozen launch projection without receiving it.
+ * JSON and describe the persisted ManagedAgent projection. They deliberately do
+ * not attest providerLaunchConfig overlays such as daemonAppendSystemPrompt or
+ * the runtime-injected Paseo MCP server; provider/session behavior is separate.
  */
 export function createAgentConfigReadback(agent: ManagedAgent): AgentConfigReadback {
   const revision = agent.updatedAt.toISOString();
@@ -39,6 +41,7 @@ export function createAgentConfigReadback(agent: ManagedAgent): AgentConfigReadb
   };
   const identity = {
     contract: "paseo.agent-config-readback.v1" as const,
+    projection: "agent-manager-stored-config" as const,
     agentId: agent.id,
     revision,
     provider: agent.provider,
