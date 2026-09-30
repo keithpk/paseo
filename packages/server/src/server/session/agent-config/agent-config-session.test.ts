@@ -102,10 +102,18 @@ describe("AgentConfigSession", () => {
       requestId: "read-1",
     });
     expect(operations.callLog).toEqual(["read:agent-1"]);
-    expect(emitted).toEqual([{
-      type: "agent.config.read.response",
-      payload: { requestId: "read-1", agentId: "agent-1", accepted: true, error: null, readback: operations.readback },
-    }]);
+    expect(emitted).toEqual([
+      {
+        type: "agent.config.read.response",
+        payload: {
+          requestId: "read-1",
+          agentId: "agent-1",
+          accepted: true,
+          error: null,
+          readback: operations.readback,
+        },
+      },
+    ]);
     expect(JSON.stringify(emitted)).not.toContain("secret");
   });
 
@@ -117,13 +125,18 @@ describe("AgentConfigSession", () => {
       agentId: "agent-1",
       requestId: "read-2",
     });
-    expect(emitted).toEqual([{
-      type: "agent.config.read.response",
-      payload: {
-        requestId: "read-2", agentId: "agent-1", accepted: false,
-        error: "Agent config readback is unavailable for this exact agent", readback: null,
+    expect(emitted).toEqual([
+      {
+        type: "agent.config.read.response",
+        payload: {
+          requestId: "read-2",
+          agentId: "agent-1",
+          accepted: false,
+          error: "Agent config readback is unavailable for this exact agent",
+          readback: null,
+        },
       },
-    }]);
+    ]);
     expect(JSON.stringify(emitted)).not.toContain("secret-provider-details");
   });
 
@@ -137,7 +150,11 @@ describe("AgentConfigSession", () => {
     });
     expect(emitted[0]).toMatchObject({
       type: "agent.config.read.response",
-      payload: { accepted: false, readback: null, error: "Agent config readback is unavailable for this exact agent" },
+      payload: {
+        accepted: false,
+        readback: null,
+        error: "Agent config readback is unavailable for this exact agent",
+      },
     });
     expect(JSON.stringify(emitted)).not.toContain("secret-provider-details");
   });

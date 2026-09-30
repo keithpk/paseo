@@ -158,17 +158,31 @@ export class AgentConfigSession {
     this.logger.info({ agentId, requestId }, "session: agent.config.read.request");
     try {
       const readback = await this.operations.readConfig(agentId);
-      if (readback.agentId !== agentId) throw new Error("agent identity changed during config read");
-      this.host.emit({ type: "agent.config.read.response", payload: {
-        requestId, agentId, accepted: true, error: null, readback,
-      } });
+      if (readback.agentId !== agentId)
+        throw new Error("agent identity changed during config read");
+      this.host.emit({
+        type: "agent.config.read.response",
+        payload: {
+          requestId,
+          agentId,
+          accepted: true,
+          error: null,
+          readback,
+        },
+      });
     } catch {
       // Do not log or return configuration values or provider diagnostics.
       this.logger.warn({ agentId, requestId }, "session: agent.config.read.request unavailable");
-      this.host.emit({ type: "agent.config.read.response", payload: {
-        requestId, agentId, accepted: false,
-        error: "Agent config readback is unavailable for this exact agent", readback: null,
-      } });
+      this.host.emit({
+        type: "agent.config.read.response",
+        payload: {
+          requestId,
+          agentId,
+          accepted: false,
+          error: "Agent config readback is unavailable for this exact agent",
+          readback: null,
+        },
+      });
     }
   }
 

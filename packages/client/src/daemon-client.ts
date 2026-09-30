@@ -3486,7 +3486,9 @@ export class DaemonClient {
   /** Reads hashes of persisted per-agent config without returning env, MCP secrets, or prompt text. */
   async getAgentConfig(agentId: string): Promise<AgentConfigReadback> {
     if (this.lastServerInfoMessage?.features?.agentConfigReadback !== true) {
-      throw new DaemonConnectionError("The connected daemon does not support authenticated per-agent config readback");
+      throw new DaemonConnectionError(
+        "The connected daemon does not support authenticated per-agent config readback",
+      );
     }
     const requestId = this.createRequestId();
     const message = SessionInboundMessageSchema.parse({
@@ -3499,7 +3501,8 @@ export class DaemonClient {
       message,
       options: { skipQueue: true },
       select: (msg) => {
-        if (msg.type !== "agent.config.read.response" || msg.payload.requestId !== requestId) return null;
+        if (msg.type !== "agent.config.read.response" || msg.payload.requestId !== requestId)
+          return null;
         return msg.payload;
       },
     });

@@ -19,7 +19,9 @@ function managedAgent(overrides: Partial<ManagedAgent> = {}): ManagedAgent {
       toolPolicy: { mode: "auto", preapproved: [] },
       systemPrompt: "private role prompt",
     },
-    launchEnvironmentSha256: createHash("sha256").update(JSON.stringify({ TOKEN: "secret-value" })).digest("hex"),
+    launchEnvironmentSha256: createHash("sha256")
+      .update(JSON.stringify({ TOKEN: "secret-value" }))
+      .digest("hex"),
     createdAt: new Date("2026-09-29T11:00:00.000Z"),
     updatedAt: new Date("2026-09-29T12:00:00.000Z"),
     availableModes: [],
@@ -68,12 +70,20 @@ describe("agent config readback", () => {
         env: { TOKEN: "secret-value" },
       },
     });
-    expect(createAgentConfigReadback(reordered).configSha256).toBe(createAgentConfigReadback(original).configSha256);
-    expect(createAgentConfigReadback(managedAgent({ updatedAt: new Date("2026-09-29T12:00:01.000Z") })).configSha256)
-      .not.toBe(createAgentConfigReadback(original).configSha256);
-    expect(createAgentConfigReadback(managedAgent({
-      config: { ...original.config, mcpServers: { other: { command: "other", args: [] } } },
-    })).mcpServersSha256).not.toBe(createAgentConfigReadback(original).mcpServersSha256);
+    expect(createAgentConfigReadback(reordered).configSha256).toBe(
+      createAgentConfigReadback(original).configSha256,
+    );
+    expect(
+      createAgentConfigReadback(managedAgent({ updatedAt: new Date("2026-09-29T12:00:01.000Z") }))
+        .configSha256,
+    ).not.toBe(createAgentConfigReadback(original).configSha256);
+    expect(
+      createAgentConfigReadback(
+        managedAgent({
+          config: { ...original.config, mcpServers: { other: { command: "other", args: [] } } },
+        }),
+      ).mcpServersSha256,
+    ).not.toBe(createAgentConfigReadback(original).mcpServersSha256);
   });
 
   test("legacy/imported records report unknown launch environment instead of fabricating a hash", () => {

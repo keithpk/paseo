@@ -186,7 +186,9 @@ function buildStoredAgentConfig(record: StoredAgentRecord): AgentSessionConfig {
 }
 
 function hashLaunchEnvironment(env: Record<string, string> | undefined): string {
-  const canonical = JSON.stringify(Object.fromEntries(Object.entries(env ?? {}).sort(([a], [b]) => a.localeCompare(b))));
+  const canonical = JSON.stringify(
+    Object.fromEntries(Object.entries(env ?? {}).sort(([a], [b]) => a.localeCompare(b))),
+  );
   return createHash("sha256").update(canonical, "utf8").digest("hex");
 }
 

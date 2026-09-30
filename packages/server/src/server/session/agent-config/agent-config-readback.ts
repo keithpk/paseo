@@ -6,7 +6,10 @@ function canonicalJson(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   const record = value as Record<string, unknown>;
-  return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+    .join(",")}}`;
 }
 
 function sha256(value: string): string {
@@ -31,7 +34,8 @@ export function createAgentConfigReadback(agent: ManagedAgent): AgentConfigReadb
     providerOptionsSha256: valueDigest(config.providerOptions),
     toolPolicySha256: valueDigest(config.toolPolicy),
     mcpServersSha256: valueDigest(config.mcpServers),
-    systemPromptSha256: config.systemPrompt === undefined ? null : sha256(canonicalJson(config.systemPrompt)),
+    systemPromptSha256:
+      config.systemPrompt === undefined ? null : sha256(canonicalJson(config.systemPrompt)),
   };
   const identity = {
     contract: "paseo.agent-config-readback.v1" as const,

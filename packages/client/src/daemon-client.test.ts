@@ -357,7 +357,9 @@ test("agent config readback fails closed on an old daemon before sending a reque
   const connecting = client.connect();
   mock.triggerOpen({ features: {} });
   await connecting;
-  await expect(client.getAgentConfig("agent-a")).rejects.toThrow("does not support authenticated per-agent config readback");
+  await expect(client.getAgentConfig("agent-a")).rejects.toThrow(
+    "does not support authenticated per-agent config readback",
+  );
   expect(mock.sent).toEqual([]);
 });
 
@@ -377,32 +379,34 @@ test("agent config readback verifies the requested agent identity", async () => 
   await Promise.resolve();
   const request = parseSentFrame(mock.sent.at(-1));
   expect(request.type).toBe("agent.config.read.request");
-  mock.triggerMessage(wrapSessionMessage({
-    type: "agent.config.read.response",
-    payload: {
-      requestId: request.requestId,
-      agentId: "agent-b",
-      accepted: true,
-      error: null,
-      readback: {
-        contract: "paseo.agent-config-readback.v1",
+  mock.triggerMessage(
+    wrapSessionMessage({
+      type: "agent.config.read.response",
+      payload: {
+        requestId: request.requestId,
         agentId: "agent-b",
-        revision: "2026-09-29T12:00:00.000Z",
-        provider: "codex",
-        cwd: "/workspace",
-        model: "gpt-test",
-        modeId: null,
-        thinkingOptionId: null,
-        featureValuesSha256: "a".repeat(64),
-        envSha256: "b".repeat(64),
-        providerOptionsSha256: "c".repeat(64),
-        toolPolicySha256: "d".repeat(64),
-        mcpServersSha256: "e".repeat(64),
-        systemPromptSha256: null,
-        configSha256: "0".repeat(64),
+        accepted: true,
+        error: null,
+        readback: {
+          contract: "paseo.agent-config-readback.v1",
+          agentId: "agent-b",
+          revision: "2026-09-29T12:00:00.000Z",
+          provider: "codex",
+          cwd: "/workspace",
+          model: "gpt-test",
+          modeId: null,
+          thinkingOptionId: null,
+          featureValuesSha256: "a".repeat(64),
+          envSha256: "b".repeat(64),
+          providerOptionsSha256: "c".repeat(64),
+          toolPolicySha256: "d".repeat(64),
+          mcpServersSha256: "e".repeat(64),
+          systemPromptSha256: null,
+          configSha256: "0".repeat(64),
+        },
       },
-    },
-  }));
+    }),
+  );
   await expect(reading).rejects.toThrow("different agent identity");
 });
 
