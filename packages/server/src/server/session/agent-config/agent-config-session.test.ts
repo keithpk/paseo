@@ -7,6 +7,7 @@ import {
 } from "./agent-config-session.js";
 import type { AgentProviderNotice } from "../../agent/agent-sdk-types.js";
 import type { SessionOutboundMessage } from "../../messages.js";
+import type { AgentConfigReadback } from "@getpaseo/protocol/messages";
 
 class FakeAgentConfigOperations implements AgentConfigOperations {
   readonly loadedAgentIds: string[] = [];
@@ -20,6 +21,29 @@ class FakeAgentConfigOperations implements AgentConfigOperations {
   thinkingNotice: AgentProviderNotice | null = null;
   loadFailure: Error | null = null;
   failWith: Error | null = null;
+  readback: AgentConfigReadback = {
+    contract: "paseo.agent-config-readback.v1",
+    agentId: "agent-1",
+    revision: "2026-09-29T12:00:00.000Z",
+    provider: "codex",
+    cwd: "/workspace",
+    model: "gpt-test",
+    modeId: null,
+    thinkingOptionId: null,
+    featureValuesSha256: "a".repeat(64),
+    envSha256: "b".repeat(64),
+    providerOptionsSha256: "c".repeat(64),
+    toolPolicySha256: "d".repeat(64),
+    mcpServersSha256: "e".repeat(64),
+    systemPromptSha256: "f".repeat(64),
+    configSha256: "0".repeat(64),
+  };
+
+  readConfig(agentId: string): AgentConfigReadback {
+    this.callLog.push(`read:${agentId}`);
+    if (this.failWith) throw this.failWith;
+    return this.readback;
+  }
 
   async ensureLoaded(agentId: string): Promise<void> {
     this.loadedAgentIds.push(agentId);
@@ -69,6 +93,54 @@ function makeSubsystem() {
 }
 
 describe("AgentConfigSession", () => {
+  test("config read returns exact identity and fingerprints without config values", async () => {
+    const { subsystem, emitted, operations } = makeSubsystem();
+    operations.readback.agentId = "agent-1";
+    await subsystem.handleAgentConfigReadRequest({
+      type: "agent.config.read.request",
+      agentId: "agent-1",
+      requestId: "read-1",
+    });
+    expect(operations.callLog).toEqual(["read:agent-1"]);
+    expect(emitted).toEqual([{
+      type: "agent.config.read.response",
+      payload: { requestId: "read-1", agentId: "agent-1", accepted: true, error: null, readback: operations.readback },
+    }]);
+    expect(JSON.stringify(emitted)).not.toContain("secret");
+  });
+
+  test("config read rejects a mismatched agent and never returns provider diagnostics", async () => {
+    const { subsystem, emitted, operations } = makeSubsystem();
+    operations.readback.agentId = "different-agent";
+    await subsystem.handleAgentConfigReadRequest({
+      type: "agent.config.read.request",
+      agentId: "agent-1",
+      requestId: "read-2",
+    });
+    expect(emitted).toEqual([{
+      type: "agent.config.read.response",
+      payload: {
+        requestId: "read-2", agentId: "agent-1", accepted: false,
+        error: "Agent config readback is unavailable for this exact agent", readback: null,
+      },
+    }]);
+    expect(JSON.stringify(emitted)).not.toContain("secret-provider-details");
+  });
+
+  test("config read hides read failures rather than returning provider details", async () => {
+    const { subsystem, emitted, operations } = makeSubsystem();
+    operations.failWith = new Error("secret-provider-details");
+    await subsystem.handleAgentConfigReadRequest({
+      type: "agent.config.read.request",
+      agentId: "agent-1",
+      requestId: "read-3",
+    });
+    expect(emitted[0]).toMatchObject({
+      type: "agent.config.read.response",
+      payload: { accepted: false, readback: null, error: "Agent config readback is unavailable for this exact agent" },
+    });
+    expect(JSON.stringify(emitted)).not.toContain("secret-provider-details");
+  });
   test("set mode: forwards the args and emits an accepted response carrying the notice", async () => {
     const { subsystem, emitted, operations } = makeSubsystem();
     operations.modeNotice = { type: "info", message: "Switched to plan mode" };

@@ -352,6 +352,8 @@ export interface PaseoAgentHandle {
   readonly timeline: PaseoAgentTimelineHandle;
   current(): PaseoAgent | null;
   refresh(requestId?: string): Promise<PaseoAgentRefetchResult | null>;
+  /** Reads exact persisted config fingerprints; never returns secret env/MCP values or prompt text. */
+  config(): Promise<import("@getpaseo/protocol/messages").AgentConfigReadback>;
   send(text: string, options?: PaseoAgentSendOptions): Promise<void>;
   respondToPermission(options: PaseoAgentRespondToPermissionOptions): Promise<void>;
   /** Sends a prompt and resolves when that turn finishes or needs attention. */
@@ -926,6 +928,7 @@ function createAgentHandleFactory(
         current = result?.agent ?? null;
         return result;
       },
+      config: () => daemonClient.getAgentConfig(id),
       send: async (text, options) => {
         await daemonClient.sendAgentMessage(id, text, options);
       },

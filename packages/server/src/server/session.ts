@@ -181,6 +181,7 @@ import { ScheduleSession } from "./session/schedule/schedule-session.js";
 import { ProviderCatalogSession } from "./session/provider/provider-catalog-session.js";
 import { WorkspaceFilesSession } from "./session/files/workspace-files-session.js";
 import { AgentConfigSession } from "./session/agent-config/agent-config-session.js";
+import { createAgentConfigReadback } from "./session/agent-config/agent-config-readback.js";
 import { ProjectConfigSession } from "./session/project-config/project-config-session.js";
 import { DaemonSession, type DaemonRuntimeConfig } from "./session/daemon/daemon-session.js";
 import type { DaemonWebSocketRuntimeDiagnosticSnapshot } from "./session/daemon/diagnostics.js";
@@ -985,6 +986,11 @@ export class Session {
         emit: (msg) => this.emit(msg),
       },
       operations: {
+        readConfig: (agentId) => {
+          const agent = agentManager.getAgent(agentId);
+          if (!agent) throw new Error("agent is not present in the current daemon snapshot");
+          return createAgentConfigReadback(agent);
+        },
         ensureLoaded: async (agentId) => {
           await ensureUnarchivedAgentLoaded(agentId, {
             agentManager,
@@ -2692,6 +2698,8 @@ export class Session {
         return this.agentConfigSession.handleSetAgentThinkingRequest(msg);
       case "agent.config.apply.request":
         return this.agentConfigSession.handleAgentConfigApplyRequest(msg);
+      case "agent.config.read.request":
+        return this.agentConfigSession.handleAgentConfigReadRequest(msg);
       case "get_daemon_config_request":
         this.emit({
           type: "get_daemon_config_response",

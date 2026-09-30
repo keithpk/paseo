@@ -130,6 +130,7 @@ import type {
   AgentSessionConfig,
 } from "@getpaseo/protocol/agent-types";
 import type {
+  AgentConfigReadback,
   AgentConfigApply,
   MutableDaemonConfig,
   MutableDaemonConfigPatch,
@@ -3480,6 +3481,35 @@ export class DaemonClient {
       throw new Error(payload.error ?? "applyAgentConfig rejected");
     }
     return payload.notice ?? null;
+  }
+
+  /** Reads hashes of persisted per-agent config without returning env, MCP secrets, or prompt text. */
+  async getAgentConfig(agentId: string): Promise<AgentConfigReadback> {
+    if (this.lastServerInfoMessage?.features?.agentConfigReadback !== true) {
+      throw new DaemonConnectionError("The connected daemon does not support authenticated per-agent config readback");
+    }
+    const requestId = this.createRequestId();
+    const message = SessionInboundMessageSchema.parse({
+      type: "agent.config.read.request",
+      agentId,
+      requestId,
+    });
+    const payload = await this.sendRequest({
+      requestId,
+      message,
+      options: { skipQueue: true },
+      select: (msg) => {
+        if (msg.type !== "agent.config.read.response" || msg.payload.requestId !== requestId) return null;
+        return msg.payload;
+      },
+    });
+    if (!payload.accepted || !payload.readback) {
+      throw new Error(payload.error ?? "agent config readback was rejected");
+    }
+    if (payload.agentId !== agentId || payload.readback.agentId !== agentId) {
+      throw new Error("agent config readback returned a different agent identity");
+    }
+    return payload.readback;
   }
 
   async restartServer(

@@ -83,6 +83,7 @@ export function toStoredAgentRecord(
     lastStatus: agent.lifecycle,
     lastModeId: agent.currentModeId ?? config?.modeId ?? null,
     config: config ?? null,
+    ...(agent.launchEnvironmentSha256 ? { launchEnvironmentSha256: agent.launchEnvironmentSha256 } : {}),
     runtimeInfo,
     features: normalizeFeatures(agent.features),
     persistence,

@@ -72,6 +72,18 @@ Creation options include `config`, `cwd`, `parent`, `title`, `prompt`, `env`, `o
 | `mcpServers`       | MCP server map            | Session-scoped MCP servers.                                                                       |
 | `toolPolicy`       | MCP tool policy           | Exact preapproval rules for MCP tools.                                                            |
 
+### Authenticated daemon config readback
+
+`agent.config()` returns a versioned readback for that exact agent ID. The daemon reports its
+managed config revision, provider, cwd, model, mode, thinking option, and SHA-256 fingerprints
+for configured environment, feature values, provider options, MCP servers, tool policy, and
+system prompt. Raw environment values, MCP credentials, and prompt text are not returned or
+logged. The fingerprint is over the daemon's managed/resolved launch configuration, not proof
+that the provider session actually applied or exposed those settings; verify runtime behavior
+separately. The method fails closed unless the connected daemon advertises
+`features.agentConfigReadback` and returns the exact requested agent identity. Older daemons do
+not receive the request.
+
 ### Agent handle
 
 | Member                         | Result                            | Behavior                                                                                                |
@@ -91,6 +103,7 @@ Creation options include `config`, `cwd`, `parent`, `title`, `prompt`, `env`, `o
 | `archivedAt`                   | `string \| null`                  | Archive timestamp; `null` while the agent is active.                                                    |
 | `current()`                    | `PaseoAgent \| null`              | Current detailed value observed by this handle; never fetches.                                          |
 | `refresh(requestId?)`          | `PaseoAgentRefetchResult \| null` | Fetches the current agent and project placement.                                                        |
+| `config()`                      | `Promise<AgentConfigReadback>`    | Reads versioned managed-config fingerprints; requires daemon readback capability.                         |
 | `send(text, options?)`         | `Promise<void>`                   | Resolves when the daemon accepts the prompt.                                                            |
 | `respondToPermission(options)` | `Promise<void>`                   | Answers a pending permission by `requestId` with an allow or deny `response`.                           |
 | `run(text, options?)`          | `PaseoAgentRunResult`             | Sends a prompt and waits for that turn. `timeoutMs` controls the wait; it defaults to 10 minutes.       |

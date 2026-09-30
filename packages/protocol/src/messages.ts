@@ -1938,6 +1938,47 @@ export const AgentConfigApplyResponseMessageSchema = z.object({
   payload: AgentActionResponsePayloadSchema,
 });
 
+const AgentConfigDigestSchema = z.string().regex(/^[0-9a-f]{64}$/);
+export const AgentConfigReadbackSchema = z.object({
+  contract: z.literal("paseo.agent-config-readback.v1"),
+  agentId: z.string().min(1),
+  /** AgentManager updatedAt, used as an optimistic readback revision. */
+  revision: z.string().datetime(),
+  provider: z.string().min(1),
+  cwd: z.string(),
+  model: z.string().nullable(),
+  modeId: z.string().nullable(),
+  thinkingOptionId: z.string().nullable(),
+  featureValuesSha256: AgentConfigDigestSchema,
+  /** Hash of configured launch environment; raw values can contain credentials. */
+  /** Null means the launch environment was not observed (legacy/imported agent); consumers must fail closed. */
+  envSha256: AgentConfigDigestSchema.nullable(),
+  providerOptionsSha256: AgentConfigDigestSchema,
+  toolPolicySha256: AgentConfigDigestSchema,
+  mcpServersSha256: AgentConfigDigestSchema,
+  /** Null means no prompt was configured; prompt contents are never returned. */
+  systemPromptSha256: AgentConfigDigestSchema.nullable(),
+  configSha256: AgentConfigDigestSchema,
+});
+export type AgentConfigReadback = z.infer<typeof AgentConfigReadbackSchema>;
+
+export const AgentConfigReadRequestMessageSchema = z.object({
+  type: z.literal("agent.config.read.request"),
+  agentId: z.string().min(1),
+  requestId: z.string().min(1),
+});
+
+export const AgentConfigReadResponseMessageSchema = z.object({
+  type: z.literal("agent.config.read.response"),
+  payload: z.object({
+    requestId: z.string(),
+    agentId: z.string(),
+    accepted: z.boolean(),
+    error: z.string().nullable(),
+    readback: AgentConfigReadbackSchema.nullable(),
+  }),
+});
+
 export const AgentDetachRequestMessageSchema = z.object({
   type: z.literal("agent.detach.request"),
   agentId: z.string(),
@@ -3206,6 +3247,7 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   SetAgentThinkingRequestMessageSchema,
   SetAgentFeatureRequestMessageSchema,
   AgentConfigApplyRequestMessageSchema,
+  AgentConfigReadRequestMessageSchema,
   AgentDetachRequestMessageSchema,
   AgentRewindRequestMessageSchema,
   AgentPermissionResponseMessageSchema,
@@ -3637,6 +3679,7 @@ export const ServerInfoStatusPayloadSchema = z
         agentProfiles: z.boolean().optional(),
         // COMPAT(agentConfigApply): added in v0.3.2, remove gate after 2027-02-11.
         agentConfigApply: z.boolean().optional(),
+        agentConfigReadback: z.boolean().optional(),
       })
       .optional(),
   })
@@ -6655,6 +6698,7 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   SetAgentThinkingResponseMessageSchema,
   SetAgentFeatureResponseMessageSchema,
   AgentConfigApplyResponseMessageSchema,
+  AgentConfigReadResponseMessageSchema,
   AgentDetachResponseMessageSchema,
   AgentRewindResponseMessageSchema,
   UpdateAgentResponseMessageSchema,
@@ -6854,6 +6898,8 @@ export type SetAgentModelResponseMessage = z.infer<typeof SetAgentModelResponseM
 export type SetAgentThinkingResponseMessage = z.infer<typeof SetAgentThinkingResponseMessageSchema>;
 export type SetAgentFeatureResponseMessage = z.infer<typeof SetAgentFeatureResponseMessageSchema>;
 export type AgentConfigApplyResponseMessage = z.infer<typeof AgentConfigApplyResponseMessageSchema>;
+export type AgentConfigReadRequestMessage = z.infer<typeof AgentConfigReadRequestMessageSchema>;
+export type AgentConfigReadResponseMessage = z.infer<typeof AgentConfigReadResponseMessageSchema>;
 export type AgentDetachResponseMessage = z.infer<typeof AgentDetachResponseMessageSchema>;
 export type AgentRewindResponseMessage = z.infer<typeof AgentRewindResponseMessageSchema>;
 export type UpdateAgentResponseMessage = z.infer<typeof UpdateAgentResponseMessageSchema>;
